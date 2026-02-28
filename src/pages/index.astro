@@ -120,7 +120,7 @@ const latestPosts = sortedPosts.slice(0, 3); // Get the 3 latest posts
 				<h2 class="section-title">最新の記事</h2>
 				<div class="latest-posts">
 					{latestPosts.map((post) => (
-						<a href={`/blog/${post.slug}/`} class="post-card">
+						<a href={`/blog/${post.id}/`} class="post-card">
 							<h3>{post.data.title}</h3>
 							<span class="pub-date"><FormattedDate date={post.data.pubDate} /></span>
 							<p>{post.data.description}</p>
