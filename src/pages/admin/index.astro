@@ -134,7 +134,11 @@ export const prerender = false;
 
 				<div class="form-group">
 					<label for="heroImage">ヒーロー画像 URL</label>
-					<input type="text" id="heroImage" placeholder="../../assets/blog-placeholder-3.jpg" />
+					<div style="display: flex; gap: 0.5rem;">
+						<input type="text" id="heroImage" placeholder="https://.../image.jpg" style="flex: 1;" />
+						<input type="file" id="hero-upload-input" style="display: none;" accept="image/*" />
+						<button type="button" id="hero-upload-btn" class="save-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">R2にアップロード</button>
+					</div>
 				</div>
 
 				<div id="editor"></div>
@@ -194,6 +198,35 @@ export const prerender = false;
 			const saveBtn = document.getElementById('save-btn');
 			const statusMsg = document.getElementById('status-msg');
 			const newBtn = document.getElementById('new-btn');
+			const heroUploadBtn = document.getElementById('hero-upload-btn');
+			const heroUploadInput = document.getElementById('hero-upload-input') as HTMLInputElement;
+
+			// --- Hero Image Upload ---
+			heroUploadBtn?.addEventListener('click', () => heroUploadInput.click());
+			heroUploadInput?.addEventListener('change', async () => {
+				const file = heroUploadInput.files?.[0];
+				if (!file) return;
+
+				showStatus('ヒーロー画像をアップロード中...', 'info');
+				const formData = new FormData();
+				formData.append('image', file);
+
+				try {
+					const res = await fetch('/api/upload-image', {
+						method: 'POST',
+						body: formData
+					});
+					const result = await res.json();
+					if (res.ok) {
+						heroImageInput.value = result.url;
+						showStatus('ヒーロー画像をアップロードしました', 'success');
+					} else {
+						throw new Error(result.message);
+					}
+				} catch (error: any) {
+					showStatus(`アップロードエラー: ${error.message}`, 'error');
+				}
+			});
 
 			// --- Load Post List ---
 			async function loadPosts() {
