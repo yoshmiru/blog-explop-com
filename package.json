@@ -13,6 +13,8 @@
     "@astrojs/mdx": "^4.3.13",
     "@astrojs/rss": "^4.0.15",
     "@astrojs/sitemap": "^3.7.0",
+    "@octokit/rest": "^22.0.1",
+    "@toast-ui/editor": "^3.2.2",
     "astro": "^5.17.1",
     "sharp": "^0.34.3"
   }

@@ -1,0 +1,184 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Admin - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<style>
+			main {
+				width: 1000px;
+				max-width: calc(100% - 2em);
+				margin: auto;
+				padding: 3em 1em;
+			}
+			.form-group {
+				margin-bottom: 1.5rem;
+			}
+			.form-group label {
+				display: block;
+				margin-bottom: 0.5rem;
+				font-weight: bold;
+			}
+			.form-group input {
+				width: 100%;
+				padding: 0.5rem;
+				font-size: 1rem;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+			}
+			.editor-container {
+				margin-bottom: 2rem;
+			}
+			.save-btn {
+				padding: 1rem 2rem;
+				background-color: var(--accent);
+				color: white;
+				border: none;
+				border-radius: 4px;
+				font-size: 1.2rem;
+				cursor: pointer;
+				transition: background-color 0.3s;
+			}
+			.save-btn:hover {
+				background-color: var(--accent-dark);
+			}
+			.save-btn:disabled {
+				background-color: #ccc;
+				cursor: not-allowed;
+			}
+			#status-msg {
+				margin-top: 1rem;
+				padding: 1rem;
+				border-radius: 4px;
+				display: none;
+			}
+			.status-success {
+				background-color: #d4edda;
+				color: #155724;
+				display: block !important;
+			}
+			.status-error {
+				background-color: #f8d7da;
+				color: #721c24;
+				display: block !important;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>新規記事作成 / 編集</h1>
+			<div id="status-msg"></div>
+
+			<div class="form-group">
+				<label for="title">タイトル</label>
+				<input type="text" id="title" placeholder="記事のタイトルを入力してください" required />
+			</div>
+
+			<div class="form-group">
+				<label for="slug">スラグ (URLの後半部分, e.g., 2026-02-09-guitar-diy)</label>
+				<input type="text" id="slug" placeholder="ファイル名に使用するスラグを入力してください" required />
+			</div>
+
+			<div class="form-group">
+				<label for="description">説明 (Description)</label>
+				<input type="text" id="description" placeholder="記事の短い説明を入力してください" />
+			</div>
+
+			<div class="form-group">
+				<label for="heroImage">ヒーロー画像 URL (Optional)</label>
+				<input type="text" id="heroImage" placeholder="../../assets/blog-placeholder-3.jpg" />
+			</div>
+
+			<div class="editor-container">
+				<label>本文 (Markdown)</label>
+				<div id="editor"></div>
+			</div>
+
+			<button id="save-btn" class="save-btn">GitHubに保存する</button>
+		</main>
+		<Footer />
+
+		<script>
+			import Editor from '@toast-ui/editor';
+			import '@toast-ui/editor/dist/toastui-editor.css';
+
+			const editor = new Editor({
+				el: document.querySelector('#editor') as HTMLElement,
+				height: '500px',
+				initialEditType: 'markdown',
+				previewStyle: 'vertical',
+				placeholder: 'ここに記事の内容を書いてください...',
+			});
+
+			const saveBtn = document.getElementById('save-btn');
+			const statusMsg = document.getElementById('status-msg');
+
+			saveBtn?.addEventListener('click', async () => {
+				const titleInput = document.getElementById('title') as HTMLInputElement;
+				const slugInput = document.getElementById('slug') as HTMLInputElement;
+				const descriptionInput = document.getElementById('description') as HTMLInputElement;
+				const heroImageInput = document.getElementById('heroImage') as HTMLInputElement;
+
+				const title = titleInput.value;
+				const slug = slugInput.value;
+				const description = descriptionInput.value;
+				const heroImage = heroImageInput.value;
+				const content = editor.getMarkdown();
+
+				if (!title || !slug || !content) {
+					alert('タイトル、スラグ、本文は必須です。');
+					return;
+				}
+
+				if (saveBtn) (saveBtn as HTMLButtonElement).disabled = true;
+				if (statusMsg) {
+					statusMsg.className = '';
+					statusMsg.textContent = '保存中...';
+					statusMsg.style.display = 'block';
+				}
+
+				try {
+					const response = await fetch('/api/save-post', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							title,
+							slug,
+							description,
+							heroImage,
+							content,
+						}),
+					});
+
+					const result = await response.json();
+
+					if (response.ok) {
+						if (statusMsg) {
+							statusMsg.className = 'status-success';
+							statusMsg.textContent = result.message;
+						}
+					} else {
+						throw new Error(result.message || '保存に失敗しました。');
+					}
+				} catch (error: any) {
+					if (statusMsg) {
+						statusMsg.className = 'status-error';
+						statusMsg.textContent = `エラー: ${error.message}`;
+					}
+				} finally {
+					if (saveBtn) (saveBtn as HTMLButtonElement).disabled = false;
+				}
+			});
+		</script>
+	</body>
+</html>
