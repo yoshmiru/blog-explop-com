@@ -3,16 +3,20 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 export const prerender = false;
 
-const s3Client = new S3Client({
-	region: 'auto',
-	endpoint: import.meta.env.R2_ENDPOINT,
-	credentials: {
-		accessKeyId: import.meta.env.R2_ACCESS_KEY_ID,
-		secretAccessKey: import.meta.env.R2_SECRET_ACCESS_KEY,
-	},
-});
+export const POST: APIRoute = async (context) => {
+	const { request } = context;
+	// Cloudflare Runtime Env から取得
+	const env = (context.locals as any).runtime?.env || import.meta.env;
 
-export const POST: APIRoute = async ({ request }) => {
+	const s3Client = new S3Client({
+		region: 'auto',
+		endpoint: env.R2_ENDPOINT,
+		credentials: {
+			accessKeyId: env.R2_ACCESS_KEY_ID,
+			secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+		},
+	});
+
 	try {
 		const formData = await request.formData();
 		const file = formData.get('image') as File;
@@ -30,14 +34,14 @@ export const POST: APIRoute = async ({ request }) => {
 
 		// R2 にアップロード (blog/ ディレクトリ配下に保存)
 		await s3Client.send(new PutObjectCommand({
-			Bucket: import.meta.env.R2_BUCKET_NAME,
+			Bucket: env.R2_BUCKET_NAME,
 			Key: `blog/${fileName}`,
 			Body: new Uint8Array(arrayBuffer),
 			ContentType: file.type,
 		}));
 
 		// 公開URLの生成 (baseUrl + /blog/ + fileName)
-		const baseUrl = import.meta.env.R2_PUBLIC_URL.replace(/\/$/, '');
+		const baseUrl = env.R2_PUBLIC_URL.replace(/\/$/, '');
 		const publicUrl = `${baseUrl}/blog/${fileName}`;
 
 		return new Response(JSON.stringify({ url: publicUrl }), {

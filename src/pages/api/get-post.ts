@@ -3,7 +3,8 @@ import { Octokit } from '@octokit/rest';
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async (context) => {
+	const { url } = context;
 	const id = url.searchParams.get('id');
 
 	if (!id) {
@@ -14,7 +15,9 @@ export const GET: APIRoute = async ({ url }) => {
 	}
 
 	try {
-		const token = import.meta.env.GITHUB_TOKEN;
+		// Cloudflare Runtime Env から取得
+		const env = (context.locals as any).runtime?.env || import.meta.env;
+		const token = env.GITHUB_TOKEN;
 		if (!token || token === 'your_token_here') {
 			return new Response(JSON.stringify({ message: 'GitHub token is not configured.' }), {
 				status: 500,
