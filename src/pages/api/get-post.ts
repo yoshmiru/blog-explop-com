@@ -41,8 +41,14 @@ export const GET: APIRoute = async (context) => {
 			throw new Error('Path is a directory, not a file.');
 		}
 
-		// Base64 デコードして生のテキストを取得
-		const content = Buffer.from(data.content, 'base64').toString('utf-8');
+		// Buffer を使わずに Base64 デコードして生のテキストを取得 (Cloudflare 対応)
+		const base64 = data.content.replace(/\n/g, ''); // 改行を削除
+		const binString = atob(base64);
+		const bytes = new Uint8Array(binString.length);
+		for (let i = 0; i < binString.length; i++) {
+			bytes[i] = binString.charCodeAt(i);
+		}
+		const content = new TextDecoder('utf-8').decode(bytes);
 
 		return new Response(JSON.stringify({
 			content,

@@ -75,13 +75,22 @@ ${content}
 `;
 		}
 
+		// Buffer を使わずに Base64 エンコード (Cloudflare 対応)
+		const encoder = new TextEncoder();
+		const bytes = encoder.encode(fileContent);
+		let binary = '';
+		const len = bytes.byteLength;
+		for (let i = 0; i < len; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
+		const base64Content = btoa(binary);
+
 		await octokit.repos.createOrUpdateFileContents({
 			owner,
 			repo,
 			path,
 			message: `cms: ${sha ? 'Update' : 'Create'} ${title}`,
-			content: Buffer.from(fileContent).toString('base64'),
-			sha,
+			content: base64Content,
 			branch: 'feature/admin', // 現在の開発用ブランチ
 		});
 
