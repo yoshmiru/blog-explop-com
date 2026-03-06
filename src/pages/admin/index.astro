@@ -93,7 +93,16 @@ export const prerender = false;
 				border-radius: 4px;
 				cursor: pointer;
 			}
-			.save-btn:disabled { background-color: #ccc; }
+			.delete-btn {
+				padding: 0.8rem 1.5rem;
+				background-color: #dc3545;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+				display: none; /* 初期状態（新規作成時）は非表示 */
+			}
+			.save-btn:disabled, .delete-btn:disabled { background-color: #ccc; }
 			#status-msg {
 				padding: 0.8rem;
 				border-radius: 4px;
@@ -145,6 +154,7 @@ export const prerender = false;
 
 				<div class="actions">
 					<button id="save-btn" class="save-btn">GitHubに保存 (コミット)</button>
+					<button id="delete-btn" class="delete-btn">この記事を削除</button>
 				</div>
 			</section>
 		</main>
@@ -196,6 +206,7 @@ export const prerender = false;
 			const descriptionInput = document.getElementById('description') as HTMLInputElement;
 			const heroImageInput = document.getElementById('heroImage') as HTMLInputElement;
 			const saveBtn = document.getElementById('save-btn');
+			const deleteBtn = document.getElementById('delete-btn');
 			const statusMsg = document.getElementById('status-msg');
 			const newBtn = document.getElementById('new-btn');
 			const heroUploadBtn = document.getElementById('hero-upload-btn');
@@ -267,6 +278,8 @@ export const prerender = false;
 					heroImageInput.value = frontmatter.heroImage || '';
 					editor.setMarkdown(content);
 					slugInput.readOnly = true; // 既存記事のスラグ変更はリスクあるため一旦制限
+					
+					if (deleteBtn) (deleteBtn as HTMLElement).style.display = 'inline-block';
 					showStatus('記事を読み込みました', 'success');
 					
 					// Active表示の更新
@@ -293,6 +306,7 @@ export const prerender = false;
 				descriptionInput.value = '';
 				heroImageInput.value = '';
 				editor.setMarkdown('');
+				if (deleteBtn) (deleteBtn as HTMLElement).style.display = 'none';
 				showStatus('新規記事の入力準備ができました', 'info');
 			}
 
@@ -323,9 +337,40 @@ export const prerender = false;
 
 				if (res.ok) {
 					showStatus(result.message, 'success');
+					if (deleteBtn) (deleteBtn as HTMLElement).style.display = 'inline-block';
 					loadPosts(); // リストを更新
 				} else {
 					showStatus(`エラー: ${result.message}`, 'error');
+				}
+			});
+
+			// --- Delete ---
+			deleteBtn?.addEventListener('click', async () => {
+				const slug = slugInput.value;
+				if (!slug) return;
+
+				if (!confirm(`本当に記事「${slug}」を削除しますか？\nこの操作は元に戻せません。`)) {
+					return;
+				}
+
+				showStatus('削除中...', 'info');
+				try {
+					const res = await fetch('/api/delete-post', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ slug })
+					});
+					const result = await res.json();
+
+					if (res.ok) {
+						showStatus(result.message, 'success');
+						resetForm();
+						loadPosts();
+					} else {
+						throw new Error(result.message);
+					}
+				} catch (error: any) {
+					showStatus(`削除エラー: ${error.message}`, 'error');
 				}
 			});
 
