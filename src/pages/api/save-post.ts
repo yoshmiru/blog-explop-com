@@ -44,15 +44,33 @@ export const POST: APIRoute = async ({ request }) => {
 			// ファイルが存在しない場合は新規作成
 		}
 
-		const fileContent = `---
+		const today = new Date().toLocaleDateString('en-us', { year: 'numeric', month: 'short', day: 'numeric' });
+		
+		let fileContent = '';
+		if (sha) {
+			// 更新時: 元の pubDate を維持し、updatedDate を今日にする
+			fileContent = `---
 title: '${title}'
 description: '${description || ''}'
-pubDate: '${pubDate || new Date().toLocaleDateString('en-us', { year: 'numeric', month: 'short', day: 'numeric' })}'
+pubDate: '${pubDate}'
+updatedDate: '${today}'
 heroImage: '${heroImage || ''}'
 ---
 
 ${content}
 `;
+		} else {
+			// 新規作成時: pubDate を今日にする
+			fileContent = `---
+title: '${title}'
+description: '${description || ''}'
+pubDate: '${today}'
+heroImage: '${heroImage || ''}'
+---
+
+${content}
+`;
+		}
 
 		await octokit.repos.createOrUpdateFileContents({
 			owner,
