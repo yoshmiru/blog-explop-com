@@ -1,0 +1,386 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`Admin - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+		<style>
+			.admin-container {
+				display: grid;
+				grid-template-columns: 300px 1fr;
+				gap: 2rem;
+				max-width: 1400px;
+				margin: 0 auto;
+				padding: 2rem;
+			}
+			.sidebar {
+				border-right: 1px solid #eee;
+				padding-right: 1rem;
+				overflow-y: auto;
+				max-height: 80vh;
+			}
+			.sidebar h2 {
+				font-size: 1.2rem;
+				margin-bottom: 1rem;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			.new-post-btn {
+				padding: 0.3rem 0.6rem;
+				font-size: 0.8rem;
+				background-color: #28a745;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+			}
+			.post-list {
+				list-style: none;
+				padding: 0;
+			}
+			.post-item {
+				padding: 0.8rem;
+				border-bottom: 1px solid #f0f0f0;
+				cursor: pointer;
+				transition: background 0.2s;
+			}
+			.post-item:hover {
+				background-color: #f8f9fa;
+			}
+			.post-item.active {
+				background-color: #e9ecef;
+				font-weight: bold;
+			}
+			.post-item-date {
+				display: block;
+				font-size: 0.8rem;
+				color: #6c757d;
+			}
+			.editor-main {
+				display: flex;
+				flex-direction: column;
+				gap: 1.5rem;
+			}
+			.form-group label {
+				display: block;
+				margin-bottom: 0.5rem;
+				font-weight: bold;
+			}
+			.form-group input {
+				width: 100%;
+				padding: 0.5rem;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+			}
+			.actions {
+				display: flex;
+				gap: 1rem;
+				align-items: center;
+			}
+			.save-btn {
+				padding: 0.8rem 1.5rem;
+				background-color: var(--accent);
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+			}
+			.delete-btn {
+				padding: 0.8rem 1.5rem;
+				background-color: #dc3545;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+				display: none; /* 初期状態（新規作成時）は非表示 */
+			}
+			.save-btn:disabled, .delete-btn:disabled { background-color: #ccc; }
+			#status-msg {
+				padding: 0.8rem;
+				border-radius: 4px;
+				display: none;
+			}
+			.status-success { background-color: #d4edda; color: #155724; display: block !important; }
+			.status-error { background-color: #f8d7da; color: #721c24; display: block !important; }
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main class="admin-container">
+			<aside class="sidebar">
+				<h2>記事一覧 <button id="new-btn" class="new-post-btn">新規作成</button></h2>
+				<ul id="post-list" class="post-list">
+					<li>読み込み中...</li>
+				</ul>
+			</aside>
+
+			<section class="editor-main">
+				<h1>記事の編集 / 作成</h1>
+				<div id="status-msg"></div>
+
+				<div class="form-group">
+					<label for="title">タイトル</label>
+					<input type="text" id="title" placeholder="タイトルを入力してください" />
+				</div>
+
+				<div class="form-group">
+					<label for="slug">スラグ (ファイル名 / URL)</label>
+					<input type="text" id="slug" placeholder="2026-02-09-guitar-diy" />
+				</div>
+
+				<div class="form-group">
+					<label for="description">説明</label>
+					<input type="text" id="description" placeholder="説明を入力してください" />
+				</div>
+
+				<div class="form-group">
+					<label for="heroImage">ヒーロー画像 URL</label>
+					<div style="display: flex; gap: 0.5rem;">
+						<input type="text" id="heroImage" placeholder="https://.../image.jpg" style="flex: 1;" />
+						<input type="file" id="hero-upload-input" style="display: none;" accept="image/*" />
+						<button type="button" id="hero-upload-btn" class="save-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">R2にアップロード</button>
+					</div>
+				</div>
+
+				<div id="editor"></div>
+
+				<div class="actions">
+					<button id="save-btn" class="save-btn">GitHubに保存 (コミット)</button>
+					<button id="delete-btn" class="delete-btn">この記事を削除</button>
+				</div>
+			</section>
+		</main>
+		<Footer />
+
+		<script>
+			import Editor from '@toast-ui/editor';
+			import '@toast-ui/editor/dist/toastui-editor.css';
+			import matter from 'gray-matter';
+			import { Buffer } from 'buffer';
+
+			// Buffer polyfill for browser
+			// @ts-ignore
+			window.Buffer = Buffer;
+
+			const editor = new Editor({
+				el: document.querySelector('#editor') as HTMLElement,
+				height: '500px',
+				initialEditType: 'markdown',
+				previewStyle: 'vertical',
+				hooks: {
+					// @ts-ignore
+					addImageBlobHook: async (blob, callback) => {
+						const formData = new FormData();
+						formData.append('image', blob);
+
+						try {
+							const response = await fetch('/api/upload-image', {
+								method: 'POST',
+								body: formData,
+							});
+							const result = await response.json();
+							if (response.ok) {
+								callback(result.url, blob.name);
+							} else {
+								throw new Error(result.message);
+							}
+						} catch (error: any) {
+							console.error('Upload error:', error);
+							alert('画像のアップロードに失敗しました。');
+						}
+					},
+				},
+			});
+
+			const postListEl = document.getElementById('post-list');
+			const titleInput = document.getElementById('title') as HTMLInputElement;
+			const slugInput = document.getElementById('slug') as HTMLInputElement;
+			const descriptionInput = document.getElementById('description') as HTMLInputElement;
+			const heroImageInput = document.getElementById('heroImage') as HTMLInputElement;
+			const saveBtn = document.getElementById('save-btn');
+			const deleteBtn = document.getElementById('delete-btn');
+			const statusMsg = document.getElementById('status-msg');
+			const newBtn = document.getElementById('new-btn');
+			const heroUploadBtn = document.getElementById('hero-upload-btn');
+			const heroUploadInput = document.getElementById('hero-upload-input') as HTMLInputElement;
+
+			let currentPubDate: string | null = null;
+
+			// --- Hero Image Upload ---
+			heroUploadBtn?.addEventListener('click', () => heroUploadInput.click());
+			heroUploadInput?.addEventListener('change', async () => {
+				const file = heroUploadInput.files?.[0];
+				if (!file) return;
+
+				showStatus('ヒーロー画像をアップロード中...', 'info');
+				const formData = new FormData();
+				formData.append('image', file);
+
+				try {
+					const res = await fetch('/api/upload-image', {
+						method: 'POST',
+						body: formData
+					});
+					const result = await res.json();
+					if (res.ok) {
+						heroImageInput.value = result.url;
+						showStatus('ヒーロー画像をアップロードしました', 'success');
+					} else {
+						throw new Error(result.message);
+					}
+				} catch (error: any) {
+					showStatus(`アップロードエラー: ${error.message}`, 'error');
+				}
+			});
+
+			// --- Load Post List ---
+			async function loadPosts() {
+				if (!postListEl) return;
+				postListEl.innerHTML = '<li>読み込み中...</li>';
+				const res = await fetch('/api/get-posts');
+				const posts = await res.json();
+				
+				postListEl.innerHTML = '';
+				if (!Array.isArray(posts)) {
+					postListEl.innerHTML = '<li>記事の取得に失敗しました。</li>';
+					return;
+				}
+
+				posts.forEach((post: any) => {
+					const li = document.createElement('li');
+					li.className = 'post-item';
+					li.innerHTML = `
+						<strong>${post.title}</strong>
+						<span class="post-item-date">${new Date(post.pubDate).toLocaleDateString()}</span>
+					`;
+					li.onclick = () => loadPostContent(post.id);
+					postListEl.appendChild(li);
+				});
+			}
+
+			// --- Load Single Post Content ---
+			async function loadPostContent(id: string) {
+				showStatus('記事を読み込み中...', 'info');
+				const res = await fetch(`/api/get-post?id=${id}`);
+				const data = await res.json();
+
+				if (res.ok) {
+					const { data: frontmatter, content } = matter(data.content);
+					titleInput.value = frontmatter.title || '';
+					slugInput.value = id;
+					descriptionInput.value = frontmatter.description || '';
+					heroImageInput.value = frontmatter.heroImage || '';
+					currentPubDate = frontmatter.pubDate ? new Date(frontmatter.pubDate).toLocaleDateString('en-us', { year: 'numeric', month: 'short', day: 'numeric' }) : null;
+					editor.setMarkdown(content);
+					slugInput.readOnly = true; // 既存記事のスラグ変更はリスクあるため一旦制限
+					
+					if (deleteBtn) (deleteBtn as HTMLElement).style.display = 'inline-block';
+					showStatus('記事を読み込みました', 'success');
+					
+					// Active表示の更新
+					document.querySelectorAll('.post-item').forEach(el => el.classList.remove('active'));
+					// 簡易的なマッチング
+					[...document.querySelectorAll('.post-item')].find(el => el.textContent?.includes(frontmatter.title))?.classList.add('active');
+				} else {
+					showStatus(`エラー: ${data.message}`, 'error');
+				}
+			}
+
+			// --- UI Helpers ---
+			function showStatus(msg: string, type: 'success' | 'error' | 'info') {
+				if (!statusMsg) return;
+				statusMsg.textContent = msg;
+				statusMsg.className = type === 'info' ? '' : `status-${type}`;
+				statusMsg.style.display = 'block';
+			}
+
+			function resetForm() {
+				titleInput.value = '';
+				slugInput.value = '';
+				slugInput.readOnly = false;
+				descriptionInput.value = '';
+				heroImageInput.value = '';
+				currentPubDate = null;
+				editor.setMarkdown('');
+				if (deleteBtn) (deleteBtn as HTMLElement).style.display = 'none';
+				showStatus('新規記事の入力準備ができました', 'info');
+			}
+
+			newBtn?.addEventListener('click', resetForm);
+
+			// --- Save (Commit) ---
+			saveBtn?.addEventListener('click', async () => {
+				const postData = {
+					title: titleInput.value,
+					slug: slugInput.value,
+					description: descriptionInput.value,
+					heroImage: heroImageInput.value,
+					pubDate: currentPubDate,
+					content: editor.getMarkdown()
+				};
+
+				if (!postData.title || !postData.slug || !postData.content) {
+					alert('タイトル、スラグ、本文は必須です。');
+					return;
+				}
+
+				showStatus('保存中...', 'info');
+				const res = await fetch('/api/save-post', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(postData)
+				});
+				const result = await res.json();
+
+				if (res.ok) {
+					showStatus(result.message, 'success');
+					if (deleteBtn) (deleteBtn as HTMLElement).style.display = 'inline-block';
+					loadPosts(); // リストを更新
+				} else {
+					showStatus(`エラー: ${result.message}`, 'error');
+				}
+			});
+
+			// --- Delete ---
+			deleteBtn?.addEventListener('click', async () => {
+				const slug = slugInput.value;
+				if (!slug) return;
+
+				if (!confirm(`本当に記事「${slug}」を削除しますか？\nこの操作は元に戻せません。`)) {
+					return;
+				}
+
+				showStatus('削除中...', 'info');
+				try {
+					const res = await fetch('/api/delete-post', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ slug })
+					});
+					const result = await res.json();
+
+					if (res.ok) {
+						showStatus(result.message, 'success');
+						resetForm();
+						loadPosts();
+					} else {
+						throw new Error(result.message);
+					}
+				} catch (error: any) {
+					showStatus(`削除エラー: ${error.message}`, 'error');
+				}
+			});
+
+			// Init
+			loadPosts();
+		</script>
+	</body>
+</html>
