@@ -6,7 +6,6 @@ import cloudflare from '@astrojs/cloudflare';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://blog.explop.com',
-	output: 'hybrid',
 	adapter: cloudflare(),
 	integrations: [mdx(), sitemap()],
 });
