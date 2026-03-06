@@ -180,6 +180,11 @@ export const prerender = false;
 				const posts = await res.json();
 				
 				postListEl.innerHTML = '';
+				if (!Array.isArray(posts)) {
+					postListEl.innerHTML = '<li>記事の取得に失敗しました。</li>';
+					return;
+				}
+
 				posts.forEach((post: any) => {
 					const li = document.createElement('li');
 					li.className = 'post-item';
