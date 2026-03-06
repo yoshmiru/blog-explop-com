@@ -44,10 +44,6 @@ export const GET: APIRoute = async (context) => {
 		// Base64 デコードして生のテキストを取得
 		const content = Buffer.from(data.content, 'base64').toString('utf-8');
 
-		// フロントマター（メタデータ）と本文をパースするための簡易処理
-		// 本格的なパースライブラリを使わず、まずはそのまま返してエディタでパースするか
-		// あるいはメタデータだけ抜き出すことも可能。
-		// 今回は「メタデータ込みの生テキスト」と「SHA」を返します。
 		return new Response(JSON.stringify({
 			content,
 			sha: data.sha
@@ -57,8 +53,9 @@ export const GET: APIRoute = async (context) => {
 		});
 	} catch (error: any) {
 		console.error('Error fetching post content:', error);
-		return new Response(JSON.stringify({ message: 'Error fetching post', error: error.message }), {
-			status: 500,
+		const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+		return new Response(JSON.stringify({ message: 'Error fetching post from GitHub', details: errorMessage }), {
+			status: error.status || 500,
 			headers: { 'Content-Type': 'application/json' }
 		});
 	}

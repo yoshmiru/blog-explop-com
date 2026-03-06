@@ -340,7 +340,7 @@ export const prerender = false;
 					// 簡易的なマッチング
 					[...document.querySelectorAll('.post-item')].find(el => el.textContent?.includes(frontmatter.title))?.classList.add('active');
 				} else {
-					showStatus(`エラー: ${data.message}`, 'error');
+					showStatus(`エラー: ${data.message}${data.details ? ` (${data.details})` : ''}`, 'error');
 				}
 			}
 

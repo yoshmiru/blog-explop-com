@@ -91,9 +91,10 @@ ${content}
 		);
 	} catch (error: any) {
 		console.error('Error saving post:', error);
+		const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
 		return new Response(
-			JSON.stringify({ message: 'Error saving post', error: error.message }),
-			{ status: 500, headers: { 'Content-Type': 'application/json' } }
+			JSON.stringify({ message: 'Error saving post to GitHub', details: errorMessage }),
+			{ status: error.status || 500, headers: { 'Content-Type': 'application/json' } }
 		);
 	}
 };
