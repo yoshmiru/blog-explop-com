@@ -28,17 +28,17 @@ export const POST: APIRoute = async ({ request }) => {
 		const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
 		const arrayBuffer = await file.arrayBuffer();
 
-		// R2 にアップロード (Key から blog/ を削除して重複を防止)
+		// R2 にアップロード (blog/ ディレクトリ配下に保存)
 		await s3Client.send(new PutObjectCommand({
 			Bucket: import.meta.env.R2_BUCKET_NAME,
-			Key: fileName,
+			Key: `blog/${fileName}`,
 			Body: new Uint8Array(arrayBuffer),
 			ContentType: file.type,
 		}));
 
-		// 公開URLの生成 (baseUrl + fileName のシンプルな形にする)
+		// 公開URLの生成 (baseUrl + /blog/ + fileName)
 		const baseUrl = import.meta.env.R2_PUBLIC_URL.replace(/\/$/, '');
-		const publicUrl = `${baseUrl}/${fileName}`;
+		const publicUrl = `${baseUrl}/blog/${fileName}`;
 
 		return new Response(JSON.stringify({ url: publicUrl }), {
 			status: 200,
