@@ -31,13 +31,14 @@ export const POST: APIRoute = async ({ request }) => {
 		// R2 にアップロード
 		await s3Client.send(new PutObjectCommand({
 			Bucket: import.meta.env.R2_BUCKET_NAME,
-			Key: fileName,
+			Key: `blog/${fileName}`, // blog/ ディレクトリ配下に保存
 			Body: new Uint8Array(arrayBuffer),
 			ContentType: file.type,
 		}));
 
-		// 公開URLの生成
-		const publicUrl = `${import.meta.env.R2_PUBLIC_URL}${fileName}`;
+		// 公開URLの生成 (末尾のスラッシュを考慮し、blog/ ディレクトリを含める)
+		const baseUrl = import.meta.env.R2_PUBLIC_URL.replace(/\/$/, '');
+		const publicUrl = `${baseUrl}/blog/${fileName}`;
 
 		return new Response(JSON.stringify({ url: publicUrl }), {
 			status: 200,
