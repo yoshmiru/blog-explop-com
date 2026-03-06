@@ -3,7 +3,8 @@ import { Octokit } from '@octokit/rest';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async (context) => {
+	const { request } = context;
 	try {
 		const data = await request.json();
 		const { title, description, pubDate, heroImage, content, slug } = data;
@@ -15,7 +16,9 @@ export const POST: APIRoute = async ({ request }) => {
 			);
 		}
 
-		const token = import.meta.env.GITHUB_TOKEN;
+		// Cloudflare Runtime Env から取得 (fallback として import.meta.env も残す)
+		const env = (context.locals as any).runtime?.env || import.meta.env;
+		const token = env.GITHUB_TOKEN;
 		if (!token || token === 'your_token_here') {
 			return new Response(
 				JSON.stringify({ message: 'GitHub token is not configured or still has placeholder value.' }),
