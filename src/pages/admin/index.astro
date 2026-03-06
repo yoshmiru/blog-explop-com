@@ -161,6 +161,29 @@ export const prerender = false;
 				height: '500px',
 				initialEditType: 'markdown',
 				previewStyle: 'vertical',
+				hooks: {
+					// @ts-ignore
+					addImageBlobHook: async (blob, callback) => {
+						const formData = new FormData();
+						formData.append('image', blob);
+
+						try {
+							const response = await fetch('/api/upload-image', {
+								method: 'POST',
+								body: formData,
+							});
+							const result = await response.json();
+							if (response.ok) {
+								callback(result.url, blob.name);
+							} else {
+								throw new Error(result.message);
+							}
+						} catch (error: any) {
+							console.error('Upload error:', error);
+							alert('画像のアップロードに失敗しました。');
+						}
+					},
+				},
 			});
 
 			const postListEl = document.getElementById('post-list');
