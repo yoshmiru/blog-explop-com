@@ -36,9 +36,15 @@ export const POST: APIRoute = async ({ request }) => {
 			ContentType: file.type,
 		}));
 
-		// 公開URLの生成 (末尾のスラッシュを考慮し、blog/ ディレクトリを含める)
+		// 公開URLの生成 (重複防止のためのチェック)
 		const baseUrl = import.meta.env.R2_PUBLIC_URL.replace(/\/$/, '');
-		const publicUrl = `${baseUrl}/blog/${fileName}`;
+		let publicUrl: string;
+		
+		if (baseUrl.endsWith('/blog')) {
+			publicUrl = `${baseUrl}/${fileName}`;
+		} else {
+			publicUrl = `${baseUrl}/blog/${fileName}`;
+		}
 
 		return new Response(JSON.stringify({ url: publicUrl }), {
 			status: 200,
