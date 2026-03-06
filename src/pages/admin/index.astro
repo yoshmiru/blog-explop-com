@@ -212,6 +212,8 @@ export const prerender = false;
 			const heroUploadBtn = document.getElementById('hero-upload-btn');
 			const heroUploadInput = document.getElementById('hero-upload-input') as HTMLInputElement;
 
+			let currentPubDate: string | null = null;
+
 			// --- Hero Image Upload ---
 			heroUploadBtn?.addEventListener('click', () => heroUploadInput.click());
 			heroUploadInput?.addEventListener('change', async () => {
@@ -276,6 +278,7 @@ export const prerender = false;
 					slugInput.value = id;
 					descriptionInput.value = frontmatter.description || '';
 					heroImageInput.value = frontmatter.heroImage || '';
+					currentPubDate = frontmatter.pubDate ? new Date(frontmatter.pubDate).toLocaleDateString('en-us', { year: 'numeric', month: 'short', day: 'numeric' }) : null;
 					editor.setMarkdown(content);
 					slugInput.readOnly = true; // 既存記事のスラグ変更はリスクあるため一旦制限
 					
@@ -305,6 +308,7 @@ export const prerender = false;
 				slugInput.readOnly = false;
 				descriptionInput.value = '';
 				heroImageInput.value = '';
+				currentPubDate = null;
 				editor.setMarkdown('');
 				if (deleteBtn) (deleteBtn as HTMLElement).style.display = 'none';
 				showStatus('新規記事の入力準備ができました', 'info');
@@ -319,6 +323,7 @@ export const prerender = false;
 					slug: slugInput.value,
 					description: descriptionInput.value,
 					heroImage: heroImageInput.value,
+					pubDate: currentPubDate,
 					content: editor.getMarkdown()
 				};
 
