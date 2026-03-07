@@ -38,7 +38,7 @@ export const POST: APIRoute = async (context) => {
 				owner,
 				repo,
 				path,
-				ref: 'feature/admin',
+				ref: 'master',
 			});
 			if (Array.isArray(fileData)) {
 				throw new Error('Path is a directory.');
@@ -58,7 +58,7 @@ export const POST: APIRoute = async (context) => {
 			path,
 			message: `cms: Delete post ${slug}`,
 			sha,
-			branch: 'feature/admin',
+			branch: 'master',
 		});
 
 		return new Response(

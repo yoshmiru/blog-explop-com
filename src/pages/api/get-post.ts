@@ -34,7 +34,7 @@ export const GET: APIRoute = async (context) => {
 			owner,
 			repo,
 			path,
-			ref: 'feature/admin',
+			ref: 'master',
 		});
 
 		if (Array.isArray(data)) {
