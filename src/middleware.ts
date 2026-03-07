@@ -18,7 +18,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
         if (!isLocal && (!clientIP || !allowedIPs.includes(clientIP))) {
             console.warn(`Access denied for IP: ${clientIP} to path: ${url.pathname}`);
-            return new Response(`Forbidden: Access denied. Your IP address is: ${clientIP}`, { status: 403 });
+            return new Response("Forbidden: Access denied for your IP address.", { status: 403 });
         }
     }
 
