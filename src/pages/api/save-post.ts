@@ -38,7 +38,7 @@ export const POST: APIRoute = async (context) => {
 				owner,
 				repo,
 				path,
-				ref: 'feature/admin',
+				ref: 'master',
 			});
 			if (!Array.isArray(existingFile)) {
 				sha = (existingFile as any).sha;
@@ -91,7 +91,7 @@ ${content}
 			path,
 			message: `cms: ${sha ? 'Update' : 'Create'} ${title}`,
 			content: base64Content,
-			branch: 'feature/admin', // 現在の開発用ブランチ
+			branch: 'master', // 現在の開発用ブランチ
 		});
 
 		return new Response(
